@@ -1,0 +1,308 @@
+<!--Name : Hithesh Krishnamurthy ID: 1001096009 -->
+<html>
+<head><title>Buy Products</title></head>
+<body>
+<style>
+.table-curved {
+    border-collapse:separate;
+    border: solid #ccc 3px;
+    border-radius: 25px;
+    margin: 0 auto 20px auto;
+
+     border-radius: 15px;
+
+    -moz-border-radius: 15px;
+
+    -webkit-border-radius: 15px;
+    color: #446bb3;
+}
+
+.table-curved tr:last-child td
+{
+    border-bottom-left-radius: 25px;    
+    border-bottom-right-radius: 25px;   
+    margin: 0 auto 20px auto;
+
+     border-radius: 15px;
+
+    -moz-border-radius: 15px;
+
+    -webkit-border-radius: 15px;
+    color: #446bb3;
+}
+</style>
+<label>Logged in as: <?php session_start(); print  '<Strong>'.$_SESSION["user"]. PHP_EOL.'</strong>'; ?></label>
+<p><h4>Shopping Basket:</h4></p>
+<div>
+<?php
+header('Content-type: text/html; charset=utf-8');
+ini_set('display_errors',1);
+ini_set('display_startup_errors',1);
+error_reporting(-1);
+
+//require '/opt/lampp/htdocs/cloudaws/autoloader/aws-autoloader.php';
+//use Aws\DynamoDb\DynamoDbClient;
+
+//session_start();
+$i = 0;
+$ttlprice = 0;
+$updprice = 0;
+$flag = 0;
+
+$buyitems = array();
+if (!isset($_SESSION['buytable'])){ //Check for session to verify there are elements in the cart
+$_SESSION['buytable'] = $buyitems;}
+
+
+//----------------------------To add items to cart and redraw table----------------------------------
+if(isset($_GET["buy"]))
+{$buyid = $_GET["buy"];
+
+$finalarray = array_merge($buyitems, $_SESSION['buytable']);
+array_push($finalarray, $buyid);
+
+if (isset($_SESSION['buytable']))
+{ 
+print '<table border="1"  class="table table-curved" bgcolor="#0FFFFF">';
+		print '<tr>';
+		print '<td><h4>Product Image</td></h4>';
+		print '<td><h4>Name</td></h4>';
+		print '<td><h4>Price(USD)</td></h4>';
+		print '<td><h4>Option</td></h4></tr>'; 
+}
+foreach($finalarray as $value)
+{
+$urlbasket = 'http://sandbox.api.ebaycommercenetwork.com/publisher/3.0/rest/GeneralSearch?apiKey=78b0db8a-0ee1-4939-a2f9-d3cd95ec0fcc&trackingId=7000610&productId='.$value;
+
+$xmlbsk = file_get_contents($urlbasket);
+$xmlb = new SimpleXMLElement($xmlbsk);
+
+$delid = $xmlb->categories->category->items->product[0]['id'];
+$delurl = 'buy.php?delete='.$buyid;
+
+$ttlprice += floatval($xmlb->categories->category->items->product[0]->minPrice); //Add the whole price for all items
+
+$buytable = '<tr><td><img src="'.$xmlb->categories->category->items->product[0]->images[0]->image->sourceURL.'"alt="Product image"></td><td>'.$xmlb->categories->category->items->product[0]->name.'</td><td><h4>'.$xmlb->categories->category->items->product[0]->minPrice.'$</h4></td><td><a href="'.$delurl.'" onclick="">delete</a></td></tr>';
+
+print $buytable;
+print '</div>';
+}
+print '<p><h3>Total:'.$ttlprice.'$</h3></p>';
+$_SESSION['buytable'] = $finalarray;
+}
+
+//------------------------------------To delete and redraw cart---------------------------------------
+
+if(isset($_GET["delete"]))
+{$delid = $_GET["delete"];
+
+$finalarray = $_SESSION['buytable'];
+
+if(($key = array_search($delid, $finalarray)) !== false) {
+    unset($finalarray[$key]);
+}
+foreach($finalarray as $value)
+{
+$urlbasket = 'http://sandbox.api.ebaycommercenetwork.com/publisher/3.0/rest/GeneralSearch?apiKey=78b0db8a-0ee1-4939-a2f9-d3cd95ec0fcc&trackingId=7000610&productId='.$value;
+
+$xmlbsk = file_get_contents($urlbasket);
+$xmlb = new SimpleXMLElement($xmlbsk);
+
+$delid = $xmlb->categories->category->items->product[0]['id'];
+$delurl = 'buy.php?delete='.$delid;
+
+if (isset($_SESSION['buytable']))
+{ 
+print '<table border="1"  class="table table-curved" bgcolor="#0FFFFF">';
+		print '<tr>';
+		print '<td><h4>Product Image</td></h4>';
+		print '<td><h4>Name</td></h4>';
+		print '<td><h4>Price(USD)</td></h4>';
+		print '<td><h4>Option</td></h4></tr>';  
+}
+
+$updprice += floatval($xmlb->categories->category->items->product[0]->minPrice); //Add the whole price for all items
+
+$deltable = '<tr><td><img src="'.$xmlb->categories->category->items->product[0]->images[0]->image->sourceURL.'"alt="Product image"></td><td>'.
+$xmlb->categories->category->items->product[0]->name.'</td><td><h4>'.$xmlb->categories->category->items->product[0]->minPrice.'$</h4></td><td><a href="'.$delurl.'" onclick="">delete</a></td></tr>';
+
+print $deltable;
+print '</div>';
+}
+
+print '<p><h3>Total:'.$updprice.'$</h3></p>';
+
+$_SESSION['buytable'] = $finalarray;
+}
+//----------------------------------------To add new item to database--------------------------------
+
+if(isset($_GET["add"]))
+{
+header("Refresh: 0.1; url=index.php");
+}
+	
+//----------------------------------------To clear the cart completely-------------------------------
+
+if(isset($_GET["clear"]))
+{$flag = $_GET["clear"];
+
+if ($flag == 1){
+unset($buyitems);
+unset($_SESSION['buytable']);
+unset($_SESSION['flag']);
+header("Refresh: 0.1; url=buy.php");
+
+}}
+?>
+
+<table border=1 class="table table-curved">
+</table>
+<form action="buy.php" method="GET">
+<input type="hidden" name="clear" value="1"/>
+<input type="submit" value="Empty Basket" onclick="buy.php?clear=1"/>
+</form>
+<form action="index.php" method="GET">
+<input type="submit" value="Add new item" onclick="index.php"/>
+</form>
+<p/>
+
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors','On');
+
+require '/opt/lampp/htdocs/cloudaws/autoloader/aws-autoloader.php';
+use Aws\DynamoDb\DynamoDbClient;
+
+$client = \Aws\DynamoDb\DynamoDbClient::factory(array(
+    'credentials' => array('key' => 'AKIAJWXHMMEA4J6CVJSA',
+    'secret' => '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'),
+    'region' => 'us-west-2'
+));
+
+//-------------------------------------------To display customer specific elements---------------------------------------------------
+/*$custid = $_SESSION["userid"];
+$custparams = array (
+    'TableName' => 'products',
+    'ExpressionAttributeValues' =>  array (
+        ':val1' => array('S' => $custid)
+    ) ,
+    'FilterExpression' => 'contains (custid, :val1)',
+    'Limit' => 10 
+);
+
+$count = 0;
+do {
+    $custresponse = $client->scan ( $custparams );
+    $items = $custresponse->get ( 'Items' );
+    //$items = $response->get ( $params );
+   $count = $count + count ( $items );
+
+if ($count == 0)
+{
+   print  "<p>No user uploaded Items!</p>";
+}
+else{
+     print "<p><strong>User uploaded items</strong></p>"; 
+     print '<table border="1" align="left" class="table table-curved" bgcolor="#0FFFFF">';
+		print '<tr>';
+		print '<td>Product Image</td>';
+		print '<td>Name</td>';
+		print '<td>Price(USD)</td>';
+		print '<td>Description</td>';
+		print '</tr>';
+    // Do something with the $items
+    foreach ( $items as $item ) {
+        //echo "Scanned item with Title \"{$item['prodname']['S']}\".\n";
+        $buyid = $item['custid']['S'];
+        $buyurl = 'buy.php?buy='.$buyid;
+
+print '<tr><td><a href="'.$buyurl.'" onclick=""><img src="'.$item['image']['S'].'"alt="Product image" width="173" height="206.5"></a></td>'; 
+   print '<td>'.$item['prodname']['S'].'</td>';
+   print '<td>'.$item['price']['N'].'$</td>'; 
+   print '<td>'.$item['description']['S'].'</td>';
+   print '</tr>';
+    }}
+    
+    // Set parameters for next scan
+    $custparams ['ExclusiveStartKey'] = $custresponse ['LastEvaluatedKey'];
+} while ( $custparams ['ExclusiveStartKey'] ); */
+
+//------------------------------Main display menu of the site-----------------------------------
+
+ print "<form action='buy.php' method='get'><fieldset><legend>Find Products:</legend><label>Category : <select name='category'><option value='1'>All Items</option>";
+print "<optgroup label=Menu></optgroup>";
+print "<option value= '1'>Drives</option>";
+print "<option value= '2'>Video cards</option>";
+print "</optgroup>";
+  print "</select></label><label>Search Keywords:<input type='text' name='search'><input type='submit' value='search'></label></fieldset></form>";
+?>
+<p/>
+
+<?php
+$searchItem = '';
+$idval = '';
+
+if(isset($_GET["search"])){$searchItem = $_GET["search"];}
+if(isset($_GET["category"])){$idval = $_GET["category"];}
+
+$searchItem = str_replace(' ', '', $searchItem);
+
+
+//--------------------------------------------To display elements based on the query---------------------------------------------------
+
+if(isset($_GET["search"])){
+$params = array (
+    'TableName' => 'products',
+    'ExpressionAttributeValues' =>  array (
+        ':val1' => array('S' => $searchItem)
+    ) ,
+    'FilterExpression' => 'contains (prodname, :val1)',
+    'Limit' => 10 
+);
+
+
+$count = 0;
+do {
+    $response = $client->scan ( $params );
+    $items = $response->get ( 'Items' );
+    //$items = $response->get ( $params );
+   $count = $count + count ( $items );
+
+if ($count == 0)
+{
+   print  "<p>No items matched the query</p>";
+}
+else{
+     print '<table border="1" align="left" class="table table-curved" bgcolor="#0FFFFF">';
+		print '<tr>';
+		print '<td>Product Image</td>';
+		print '<td>Name</td>';
+		print '<td>Price(USD)</td>';
+		print '<td>Description</td>';
+		print '</tr>';
+    // Do something with the $items
+    foreach ( $items as $item ) {
+        //echo "Scanned item with Title \"{$item['prodname']['S']}\".\n";
+        $buyid = $item['custid']['S'];
+        $buyurl = 'buy.php?buy='.$buyid;
+
+print '<tr><td><a href="'.$buyurl.'" onclick=""><img src="'.$item['image']['S'].'"alt="Product image" width="173" height="206.5"></a></td>'; 
+   print '<td>'.$item['prodname']['S'].'</td>';
+   print '<td>'.$item['price']['N'].'$</td>'; 
+   print '<td>'.$item['description']['S'].'</td>';
+   print '</tr>';
+    }}
+    
+    // Set parameters for next scan
+    $params ['ExclusiveStartKey'] = $response ['LastEvaluatedKey'];
+} while ( $params ['ExclusiveStartKey'] );
+
+//echo "Table scanned completely. {$count} items found.\n";
+
+
+}
+?>
+</body>
+</html>
+
+

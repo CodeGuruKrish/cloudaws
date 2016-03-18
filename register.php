@@ -1,0 +1,178 @@
+<!--Name : Hithesh Krishnamurthy ID: 1001096009 -->
+<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<meta content="utf-8" http-equiv="encoding">
+
+<html>
+<head><title>Register user</title>
+<script src="http://code.jquery.com/jquery-1.9.0.min.js"></script>
+</head>
+<style type="text/css">
+	  body { font: 14px/1.4 Georgia, Serif; background: background-size: cover; color: #cccccc; }
+.loginForm {
+	color: #996699;
+	text-decoration: none;
+}
+.page-wrapper {
+	background: transparent url() repeat-y top left;
+	margin: 0px auto;
+	padding: 0px;
+	width: 752px;
+	text-align: left;
+}
+
+.loginForm{
+	display:table;
+	margin: 20px auto;
+	padding: 6px 24px 26px;
+	position:relative;
+	font-weight: 400;
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(0,0,0,.13);
+}
+.loginForm .overlay{
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	bottom: 0px;
+	padding: 50px 30px;
+	display: none;
+	background: rgba(204, 204, 204, 0.7);
+	text-align: center;
+}
+.loginForm .overlay .message{
+	display: none;
+}
+.loginForm label{
+	display: block;
+	margin-top: 20px;
+}
+.loginForm label span{
+	color: #777;
+	display: block;
+	font-size: 14px;
+}
+.loginForm input[type=text], .loginForm input[type=password]{
+	margin-top: 5px;
+	background: #fbfbfb;
+	padding: 3px;
+	border: 1px solid #ddd;
+	box-shadow: inset 0 1px 2px rgba(0,0,0,.07);
+	font-size: 24px;
+}
+.loginForm .submit{
+	display: inline-block;
+	padding: 7px 15px;
+	margin-top: 15px;
+	background: #23A3F8;
+	color: white;
+	cursor: pointer;
+	box-shadow: 0 1px 3px rgba(0,0,0,.13);
+}
+.loginForm .submit:hover{
+	box-shadow: inset 0 1px 2px rgba(0,0,0,.07);
+}
+.loginForm .submit:active{
+	box-shadow: rgba(0, 0, 0, 0.498039) 0px 2px 10px -3px inset;
+}
+</style>
+<body>
+  		<div id="content">
+			<form name="form1" method="post" action=""/>
+			<div class="loginForm">
+				<label>
+					<span>Username*</span>
+					<input name="myusername" type="text" id="myusername">
+				</label>
+				<label>
+					<span>Password*</span>
+					<input name="mypassword" type="password" id="mypassword">
+				</label>
+				<label>
+					<span>Repeat Password*</span>
+					<input name="repmypassword" type="password" id="repmypassword">
+				</label>
+				<div class="submit">
+				<input type="submit" name="Submit" value="Register" >
+				</form>
+				</div>
+				<div class="overlay">
+					<div class="message processing">
+						<h2>Registering</h2>
+					</div>
+					<div class="message success">
+						<h2>Redirecting</h2>
+						<p>You have been registered</p>
+					</div>
+				</div>
+			</div>
+ 	</body>
+</html>
+
+<?php
+header('Content-type: text/html; charset=utf-8');
+ini_set('display_errors',1);
+ini_set('display_startup_errors',1);
+error_reporting(-1);
+
+require '/opt/lampp/htdocs/cloudaws/autoloader/aws-autoloader.php';
+use Aws\DynamoDb\DynamoDbClient;
+
+
+error_reporting(E_ALL);
+ini_set('display_errors','On');
+
+try {
+
+$id = uniqid();
+
+$client = \Aws\DynamoDb\DynamoDbClient::factory(array(
+    'credentials' => array('key' => 'AKIAJWXHMMEA4J6CVJSA',
+    'secret' => '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'),
+    'region' => 'us-west-2'
+));
+	
+  
+  if (isset( $_POST["myusername"]))
+{
+    $user = $_POST["myusername"];
+	$pass = md5($_POST["mypassword"]);
+	$reppass = md5($_POST["repmypassword"]);
+
+  if ($user != NULL)
+  {
+  if ($_POST["mypassword"] !=NULL)
+  {
+  if ($pass != $reppass)
+  {echo "<script type='text/javascript'>alert('Passwords don't match!');</script>";}    
+  
+  else {
+   
+  $response = $client->putItem(array(
+                               "TableName" => 'users',
+"Item" => (array(
+                                     "username" => array('S' => $user),
+                                     "password" => array('S' => $pass),
+                                           "id" => array('S' => $id),
+                                             )
+)
+)
+);
+  echo "<script type='text/javascript'>alert('New User added');</script>";
+  header( "refresh:0.2; url=board.php" ); 
+  }
+  }
+  else {echo "<script type='text/javascript'>alert('Please enter a password');</script>";}
+  }
+  else {echo "<script type='text/javascript'>alert('Please enter a username!');</script>";} 
+  }
+}
+ catch (PDOException $e) {
+  print "Error!: " . $e->getMessage() . "<br/>";
+  die();
+}
+
+?>
+
+
+
